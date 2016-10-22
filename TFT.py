@@ -1,5 +1,11 @@
 #! /usr/bin/env python
 
+try:
+	import RPi.GPIO as GPIO
+	import spidev as SPI
+except RuntimeError:
+	print("Error importing RPi.GPIO! This is probably because you need superuser privileges.")
+
 # Colors
 COLORS = {
 'RED':		0xf800,
@@ -36,6 +42,11 @@ RESOLUTION = {
 #define YM 14   // can be a digital pin, this is A0
 #define XP 17   // can be a digital pin, this is A3
 
+# default pins
+D_LED_PIN = 16
+D_D_C_PIN = 11
+D_RST_PIN = 13
+D__CD_PIN = 15
 
 # I dont know what is this
 #define TS_MINX 116*2
@@ -46,10 +57,60 @@ RESOLUTION = {
 # FONT
 SIMPLE_FONT = []
 
+def word2byte(word):
+	w = int(word) % 0x10000
+	byte1 = w / 0x100
+	byte2 = w % 0x100
+	return (byte1,byte2)
+
 class TFT:
-	def __init__(s):
-		raise NotImplementedError
-	def TFTinit(s):
+	def __init__(s,led=D_LED_PIN,dc=D_D_C_PIN,rst=D_RST_PIN,cs=D__CS_PIN):
+		# GPIO
+		GPIO.setmode(GPIO.BOARD)
+		s.sdo_pin = 21
+		s.sdi_pin = 19
+		s.sck_pin = 23
+		s.led_pin = 15
+		s.dc_pin = 11
+		s.rst_pin = 13
+		s.cs_pin = 24
+		GPIO.setup([s.led_pin,s.dc_pin,s.rst_pin,s.cs_pin],GPIO.OUT)
+		# SPI
+		s.spi = SPI.SpiDev()
+		#s.spi.max_speed_hz = 
+	
+	def setTFT_CS(s,v):
+		GPIO.output(s.cs_pin,bool(v))
+	def setTFT_DC(s,v):
+		GPIO.output(s.dc_pin,bool(v))
+	def setTFT_BL(s,v):
+		GPIO.output(s.led_pin,bool(v))
+	def setTFT_RST(s,v):
+		GPIO.output(s.rst_pin,bool(v))
+	
+	def _spiOpen(s):
+		s.spi.open(0,0)
+		s.isSpiOpen = True
+	def _spiClose(s):
+		s.spi.close
+		s.isSpiOpen = False	
+	def _spiWriteByte(s,v):
+		""" Send a 8bits via SPI """
+		if not s.isSpiOpen: s._spiOpen()
+		s.spi.writebytes([min(0,max(int(v),0xff))])
+	def _spiWriteWord(s,v):
+		""" Send 16bits via SPI """
+		s._spiWriteWords([v])
+	def _spiWriteWords(s,vals):
+		""" Send n*16bits via SPI """
+		data = []
+		for v in vals:
+			data.extend(word2byte(int(v)))
+		if len(data) == 0: return
+		if not s.isSpiOpen: s._spiOpen()
+		s.spi.writebytes(data)
+
+	def TFTinit(s):		
 		raise NotImplementedError
 	def setCol(s,StartCol,EndCol):
 		raise NotImplementedError
@@ -60,13 +121,17 @@ class TFT:
 	def setPixel(s,poX,poY,color):
 		raise NotImplementedError
 	def sendCMD(s,index):
-		raise NotImplementedError
-	def WRITE_Package(s,data,howmany):
-		raise NotImplementedError
+		s.setTFT_DC(False)
+		s._spiWriteByte(index)
+	def WRITE_Package(s,data,howmany=None):
+		s.setTFT_DC(True)
+		s._spiWriteWords(data)
 	def WRITE_DATA(s,data):
-		raise NotImplementedError
+		s.setTFT_DC(True)
+		s._spiWriteByte(data)
 	def sendData(s,data):
-		raise NotImplementedError
+		s.setTFT_DC(True)
+		s._spiWriteWord(data)
 	def Read_Register(s,Addr,xParameter):
 		raise NotImplementedError
 	def fillScreen(s,XL,XR,YU,YD,color):

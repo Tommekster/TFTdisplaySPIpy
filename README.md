@@ -44,3 +44,17 @@ in order to control this kind of TFT display using Raspberry Pi SPI (interface).
 | CS            | 24                  | SPI_CE0_N        |
 | GND           | 25                  | GND              |
 | VCC           | 17                  | 3v3              |
+
+
+## SPI interface
+I am using *spidev* python module. 
+It is available on [Github][spidev github].
+Before install ensure that you have *python-dev* package, 
+otherwise `sudo apt-get install python-dev`.
+
+## Reference
+* [Arduino library](https://github.com/gmtii/ili9341-arduino)
+* [Python Spidev][spidev github]
+* [Usind Spidev](http://www.100randomtasks.com/simple-spi-on-raspberry-pi)
+
+[spidev github]: https://github.com/doceme/py-spidev
